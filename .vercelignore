@@ -1,0 +1,21 @@
+node_modules
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.git
+.gitignore
+README.md
+*.md
+.vscode
+.idea
+
+# CRITICAL: Sensitive files with passwords/credentials
+# Note: src/data/tctPasswords.js placeholder is safe (empty array)
+# Only ignore if it contains actual passwords
+commant.txt
+backend/.env
+backend/.env.local
+backend/.env.*.local
+

@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-accent-200;
+  }
+  
+  body {
+    @apply bg-secondary text-accent-800;
+    font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  @keyframes gradient {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  .animate-gradient {
+    animation: gradient 3s ease infinite;
+  }
+  
+  @keyframes gradient-move {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .animate-gradient-move {
+    background-size: 200% 200%;
+    animation: gradient-move 8s ease infinite;
+  }
+  
+  @keyframes gradient-flow {
+    0% {
+      transform: translateX(-100%) translateY(-100%);
+    }
+    50% {
+      transform: translateX(100%) translateY(100%);
+    }
+    100% {
+      transform: translateX(-100%) translateY(-100%);
+    }
+  }
+  
+  .animate-gradient-flow {
+    animation: gradient-flow 20s ease infinite;
+  }
+}
+
