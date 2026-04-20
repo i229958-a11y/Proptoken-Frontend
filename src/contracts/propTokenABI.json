@@ -1,54 +1,217 @@
 [
   {
-    "inputs": [
-      { "internalType": "uint256", "name": "propertyId", "type": "uint256" },
-      { "internalType": "uint256", "name": "amount", "type": "uint256" }
-    ],
-    "name": "buyTokens",
-    "outputs": [],
-    "stateMutability": "payable",
+    "inputs": [{ "internalType": "address", "name": "_usdtAddress", "type": "address" }],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_totalTokens", "type": "uint256" }, { "internalType": "uint256", "name": "_tokenPriceUSDT", "type": "uint256" }],
+    "name": "listProperty",
+    "outputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      { "internalType": "uint256", "name": "propertyId", "type": "uint256" }
-    ],
-    "name": "getTokenPrice",
-    "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "propertyId", "type": "uint256" },
-      { "internalType": "uint256", "name": "amount", "type": "uint256" }
-    ],
-    "name": "invest",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "amount", "type": "uint256" }
-    ],
-    "name": "withdraw",
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "name": "approveProperty",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      { "internalType": "address", "name": "account", "type": "address" }
-    ],
-    "name": "balanceOf",
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }, { "internalType": "bool", "name": "freeze", "type": "bool" }],
+    "name": "setPropertyActive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }],
+    "name": "buyTokens",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "name": "withdrawRevenue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }],
+    "name": "adminWithdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "name": "getProperty",
     "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
+      {
+        "components": [
+          { "internalType": "uint256", "name": "propertyId",      "type": "uint256" },
+          { "internalType": "address", "name": "lister",          "type": "address" },
+          { "internalType": "uint256", "name": "totalTokens",     "type": "uint256" },
+          { "internalType": "uint256", "name": "tokensAvailable", "type": "uint256" },
+          { "internalType": "uint256", "name": "tokenPriceUSDT",  "type": "uint256" },
+          { "internalType": "bool",    "name": "isApproved",      "type": "bool"    },
+          { "internalType": "bool",    "name": "isActive",        "type": "bool"    }
+        ],
+        "internalType": "struct PropToken.Property",
+        "name": "",
+        "type": "tuple"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllProperties",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "propertyId",      "type": "uint256" },
+          { "internalType": "address", "name": "lister",          "type": "address" },
+          { "internalType": "uint256", "name": "totalTokens",     "type": "uint256" },
+          { "internalType": "uint256", "name": "tokensAvailable", "type": "uint256" },
+          { "internalType": "uint256", "name": "tokenPriceUSDT",  "type": "uint256" },
+          { "internalType": "bool",    "name": "isApproved",      "type": "bool"    },
+          { "internalType": "bool",    "name": "isActive",        "type": "bool"    }
+        ],
+        "internalType": "struct PropToken.Property[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }, { "internalType": "address", "name": "user", "type": "address" }],
+    "name": "getUserTokenBalance",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "name": "getTokenPrice",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalProperties",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "propertyId", "type": "uint256" }],
+    "name": "getPendingRevenue",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getContractUSDTBalance",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "propertyCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "usdt",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "uint256", "name": "propertyId",     "type": "uint256" },
+      { "indexed": true,  "internalType": "address", "name": "lister",         "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "totalTokens",    "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "tokenPriceUSDT", "type": "uint256" }
+    ],
+    "name": "PropertyListed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "propertyId", "type": "uint256" }
+    ],
+    "name": "PropertyApproved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "uint256", "name": "propertyId", "type": "uint256" },
+      { "indexed": false, "internalType": "bool",    "name": "frozen",     "type": "bool"    }
+    ],
+    "name": "PropertyFrozen",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "uint256", "name": "propertyId",    "type": "uint256" },
+      { "indexed": true,  "internalType": "address", "name": "buyer",         "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount",        "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "totalCostUSDT", "type": "uint256" }
+    ],
+    "name": "TokensPurchased",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "uint256", "name": "propertyId",  "type": "uint256" },
+      { "indexed": true,  "internalType": "address", "name": "lister",      "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amountUSDT",  "type": "uint256" }
+    ],
+    "name": "RevenueWithdrawn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "admin",      "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amountUSDT", "type": "uint256" }
+    ],
+    "name": "AdminWithdrawn",
+    "type": "event"
   }
 ]
-
