@@ -9,7 +9,11 @@ export const useStore = create(
       isConnected: false,
       ethBalance: '0',
       propyBalance: '0',
+      usdtBalance: '0',
       chainId: null,
+
+      // Demo / Live mode
+      demoMode: true, // true = demo (no MetaMask), false = live blockchain
 
       // User state
       user: {
@@ -32,6 +36,8 @@ export const useStore = create(
 
       // Properties state
       properties: [],
+      onChainProperties: [], // Properties fetched from the smart contract
+      userTokenHoldings: {}, // { propertyId: tokenBalance } from on-chain
       userInvestments: [],
 
       // Notifications
@@ -58,12 +64,18 @@ export const useStore = create(
       setWalletAddress: (address) => set({ walletAddress: address, isConnected: !!address }),
       setEthBalance: (balance) => set({ ethBalance: balance }),
       setPropyBalance: (balance) => set({ propyBalance: balance }),
+      setUsdtBalance: (balance) => set({ usdtBalance: balance }),
       setChainId: (chainId) => set({ chainId }),
+      setDemoMode: (mode) => {
+        localStorage.setItem('propToken_demoMode', mode ? 'true' : 'false');
+        set({ demoMode: mode });
+      },
       disconnectWallet: () => set({ 
         walletAddress: null, 
         isConnected: false, 
         ethBalance: '0',
         propyBalance: '0',
+        usdtBalance: '0',
       }),
 
       updateUser: (userData) => set((state) => ({ 
@@ -86,6 +98,11 @@ export const useStore = create(
       })),
 
       setProperties: (properties) => set({ properties }),
+      setOnChainProperties: (onChainProperties) => set({ onChainProperties }),
+      setUserTokenHoldings: (holdings) => set({ userTokenHoldings: holdings }),
+      updateTokenHolding: (propertyId, balance) => set((state) => ({
+        userTokenHoldings: { ...state.userTokenHoldings, [propertyId]: balance }
+      })),
       addProperty: (property) => set((state) => ({
         properties: [...state.properties, property]
       })),
@@ -149,6 +166,7 @@ export const useStore = create(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
+        demoMode: state.demoMode,
         kycStatus: state.kycStatus,
         kycDocuments: state.kycDocuments,
         userInvestments: state.userInvestments,

@@ -271,6 +271,113 @@ export const getUSDTBalance = async (address) => {
   }
 };
 
+// ─── Admin Functions (additional) ─────────────────────────────────────────
+
+/**
+ * Admin emergency withdrawal of USDT from the contract.
+ * @param {number|string} amount  Amount in USDT (6 decimals), e.g. "1000000000" for 1000 USDT.
+ */
+export const adminWithdraw = async (amount) => {
+  try {
+    const contract = await getPropTokenContract();
+    const tx = await contract.adminWithdraw(amount);
+    return await tx.wait();
+  } catch (error) {
+    console.error('Error admin withdrawing:', error);
+    throw error;
+  }
+};
+
+// ─── Additional View Functions ────────────────────────────────────────────
+
+/**
+ * Get the contract owner address.
+ * @returns {string}  Owner wallet address.
+ */
+export const getContractOwner = async () => {
+  try {
+    const contract = await getPropTokenContractReadOnly();
+    return await contract.owner();
+  } catch (error) {
+    console.error('Error getting contract owner:', error);
+    return null;
+  }
+};
+
+/**
+ * Get total USDT balance held by the PropToken contract.
+ * @returns {string}  Balance in human-readable USDT.
+ */
+export const getContractUSDTBalance = async () => {
+  try {
+    const contract = await getPropTokenContractReadOnly();
+    const raw = await contract.getContractUSDTBalance();
+    return ethers.formatUnits(raw, 6);
+  } catch (error) {
+    console.error('Error getting contract USDT balance:', error);
+    return '0';
+  }
+};
+
+/**
+ * Get total number of properties listed on-chain.
+ * @returns {number}
+ */
+export const getPropertyCount = async () => {
+  try {
+    const contract = await getPropTokenContractReadOnly();
+    const count = await contract.getTotalProperties();
+    return Number(count);
+  } catch (error) {
+    console.error('Error getting property count:', error);
+    return 0;
+  }
+};
+
+// ─── Formatting Helpers ───────────────────────────────────────────────────
+
+/**
+ * Convert an on-chain Property struct (with BigInt fields) into a
+ * frontend-friendly plain object with numbers and strings.
+ *
+ * @param {object} prop  The raw struct returned by getProperty / getAllProperties.
+ * @returns {object}  Formatted property object.
+ */
+export const formatOnChainProperty = (prop) => {
+  return {
+    onChainId: Number(prop.propertyId),
+    lister: prop.lister,
+    totalTokens: Number(prop.totalTokens),
+    tokensAvailable: Number(prop.tokensAvailable),
+    tokenPriceUSDT: Number(ethers.formatUnits(prop.tokenPriceUSDT, 6)),
+    tokenPriceRaw: prop.tokenPriceUSDT.toString(),
+    isApproved: prop.isApproved,
+    isActive: prop.isActive,
+    // Computed fields
+    totalValueUSDT: Number(ethers.formatUnits(prop.totalTokens * prop.tokenPriceUSDT, 6)),
+    soldTokens: Number(prop.totalTokens) - Number(prop.tokensAvailable),
+    soldPercent: Number(prop.totalTokens) > 0
+      ? ((Number(prop.totalTokens) - Number(prop.tokensAvailable)) / Number(prop.totalTokens) * 100).toFixed(1)
+      : '0',
+  };
+};
+
+/**
+ * Fetch all on-chain properties and return them formatted.
+ * @returns {Array}  Array of formatted property objects.
+ */
+export const getAllPropertiesFormatted = async () => {
+  try {
+    const rawProperties = await getAllProperties();
+    return rawProperties.map(formatOnChainProperty);
+  } catch (error) {
+    console.error('Error getting formatted properties:', error);
+    return [];
+  }
+};
+
+// ─── Legacy / Backwards Compatibility ─────────────────────────────────────
+
 /**
  * Legacy: get the old-style token balance (kept for backwards compatibility
  * with existing dashboard components that call this).

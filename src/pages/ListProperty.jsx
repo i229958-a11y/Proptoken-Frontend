@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Building, MapPin, DollarSign, Upload, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { submitPropertyListing } from '../utils/backend';
+import { listProperty as listPropertyOnChain } from '../utils/contract';
 
 const ListProperty = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn, kycStatus } = useStore();
+  const { user, isLoggedIn, kycStatus, demoMode, isConnected } = useStore();
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -53,20 +54,44 @@ const ListProperty = () => {
 
     setIsSubmitting(true);
     try {
+      const totalTokens = parseInt(formData.tokensTotal) || 10000;
+      const tokenPrice = parseFloat(formData.tokenPrice) || 250;
+      
+      let onChainPropertyId = null;
+      
+      // If in live mode, list property on-chain first
+      if (!demoMode && isConnected) {
+        try {
+          // Convert token price to 6-decimal USDT format
+          const tokenPriceUSDT = BigInt(Math.round(tokenPrice * 1e6));
+          const result = await listPropertyOnChain(totalTokens, tokenPriceUSDT.toString());
+          onChainPropertyId = result.propertyId;
+          console.log('Property listed on-chain with ID:', onChainPropertyId);
+        } catch (chainErr) {
+          console.error('On-chain listing failed:', chainErr);
+          alert(`On-chain listing failed: ${chainErr.message}\n\nSubmitting metadata for admin review anyway.`);
+        }
+      }
+
       const propertyData = {
         ...formData,
         price: parseFloat(formData.price),
-        tokensTotal: parseInt(formData.tokensTotal) || 10000,
-        tokenPrice: parseFloat(formData.tokenPrice) || 250,
+        tokensTotal: totalTokens,
+        tokenPrice: tokenPrice,
         roi: parseFloat(formData.roi) || 12,
-        tokensAvailable: parseInt(formData.tokensTotal) || 10000,
+        tokensAvailable: totalTokens,
         userId: user.email,
         userEmail: user.email,
         userName: user.name,
+        ...(onChainPropertyId !== null && { onChainId: parseInt(onChainPropertyId) }),
       };
 
       await submitPropertyListing(propertyData);
-      alert('Property listing request submitted successfully! It will be reviewed by admin.');
+      
+      const msg = onChainPropertyId !== null
+        ? `Property listed on-chain (ID: ${onChainPropertyId}) and submitted for admin review!`
+        : 'Property listing request submitted successfully! It will be reviewed by admin.';
+      alert(msg);
       navigate('/dashboard');
     } catch (error) {
       alert('Error submitting property listing: ' + error.message);

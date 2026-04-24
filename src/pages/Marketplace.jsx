@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Search, AlertCircle, MapPin, Grid3x3, List, SlidersHorizontal, X, TrendingUp, DollarSign, Building2, Sparkles, ChevronDown, ChevronUp, Star, Zap, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { connectWallet } from '../utils/wallet';
-import { buyTokens, getTokenPrice } from '../utils/contract';
+import { buyTokens, getTokenPrice, getUSDTBalance } from '../utils/contract';
 import { sampleProperties } from '../data/properties';
 import PropertyCard from '../components/PropertyCard';
 import Modal from '../components/Modal';
@@ -18,11 +19,13 @@ const Marketplace = () => {
     contractFrozen,
     ethBalance,
     propyBalance,
+    usdtBalance,
+    setUsdtBalance,
     kycStatus,
+    demoMode,
   } = useStore();
   
-  // Force demo mode to avoid MetaMask calls - always use demo mode
-  const isDemoMode = localStorage.getItem('propToken_demoMode') !== 'false' || true;
+  const isDemoMode = demoMode;
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [buyAmount, setBuyAmount] = useState('');
   const [isBuying, setIsBuying] = useState(false);
@@ -157,17 +160,17 @@ const Marketplace = () => {
         );
         setProperties(updatedProperties);
       
-      // NOTE: Production mode disabled for now - all transactions are demo
-      // Uncomment below for production mode with real blockchain transactions
-      /*
-      else {
-        // Production mode: Real transaction
-        const tokenPrice = await getTokenPrice(selectedProperty.id);
-        const ethAmount = (parseFloat(buyAmount) * parseFloat(tokenPrice)).toString();
-        const tx = await buyTokens(selectedProperty.id, buyAmount, ethAmount);
+      // NOTE: Production mode with real blockchain transactions
+      } else {
+        // Production mode: Real transaction via USDT
+        const onChainId = selectedProperty.onChainId ?? selectedProperty.id;
+        const receipt = await buyTokens(onChainId, buyAmount);
         
         // Save investment to backend
         const { user, addInvestment, setInvestments } = useStore.getState();
+        const tokenPrice = selectedProperty.tokenPrice || 250;
+        const usdtCost = parseFloat(buyAmount) * tokenPrice;
+        
         if (user && user.email) {
           const { addInvestment: addInvestmentBackend, getUserInvestments } = await import('../utils/backend');
           
@@ -177,10 +180,10 @@ const Marketplace = () => {
             propertyImage: selectedProperty.image,
             propertyLocation: selectedProperty.location,
             tokens: parseFloat(buyAmount),
-            amount: parseFloat(ethAmount),
-            tokenPrice: parseFloat(tokenPrice),
+            amount: usdtCost,
+            tokenPrice: tokenPrice,
             roi: selectedProperty.roi || 12,
-            transactionHash: tx.hash,
+            transactionHash: receipt.hash,
           });
           
           const updatedInvestments = getUserInvestments(user.email);
@@ -192,15 +195,19 @@ const Marketplace = () => {
             propertyImage: selectedProperty.image,
             propertyLocation: selectedProperty.location,
             tokens: parseFloat(buyAmount),
-            amount: parseFloat(ethAmount),
-            tokenPrice: parseFloat(tokenPrice),
+            amount: usdtCost,
+            tokenPrice: tokenPrice,
             roi: selectedProperty.roi || 12,
             investedAt: new Date().toISOString(),
-            transactionHash: tx.hash,
+            transactionHash: receipt.hash,
           });
         }
         
-        alert(`Transaction successful! Hash: ${tx.hash}`);
+        // Refresh USDT balance
+        const newUsdtBal = await getUSDTBalance(walletAddress);
+        setUsdtBalance(newUsdtBal);
+        
+        alert(`✅ Transaction successful!\nHash: ${receipt.hash}`);
         setSelectedProperty(null);
         setBuyAmount('');
         
@@ -212,7 +219,6 @@ const Marketplace = () => {
         );
         setProperties(updatedProperties);
       }
-      */
     } catch (error) {
       console.error('Error buying tokens:', error);
       alert(`Transaction failed: ${error.message}`);

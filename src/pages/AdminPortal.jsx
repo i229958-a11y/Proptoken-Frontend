@@ -10,6 +10,7 @@ import { getPendingPropertyRequests, approvePropertyListing, rejectPropertyListi
 import { getAllUsersAdmin, getAllTransactionsAdmin, getKYCApplications, approveKYC, rejectKYC, getProperties, approveProperty, rejectProperty } from '../utils/api';
 import Modal from '../components/Modal';
 import { getFraudSignals, getKYCScore, getMarketPredictions, getPropertyAnalytics } from '../ml';
+import { approveProperty as approvePropertyOnChain, setPropertyActive } from '../utils/contract';
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const AdminPortal = () => {
     addNotification,
     contractFrozen,
     setContractFrozen,
+    demoMode,
+    isConnected,
   } = useStore();
 
   const [loginForm, setLoginForm] = useState({
@@ -227,6 +230,19 @@ const AdminPortal = () => {
     // Check if it's a request
     const request = propertyRequests.find(r => r.id === propertyId);
     if (request) {
+      // If not in demo mode, approve on-chain first
+      if (!demoMode && isConnected) {
+        try {
+          const onChainId = request.onChainId ?? propertyId;
+          await approvePropertyOnChain(onChainId);
+          console.log('Property approved on-chain:', onChainId);
+        } catch (error) {
+          console.error('Error approving property on-chain:', error);
+          alert('Failed to approve property on-chain: ' + error.message);
+          return;
+        }
+      }
+
       await approvePropertyListing(propertyId, currentAdminEmail);
       
       // Refresh requests list
@@ -249,6 +265,20 @@ const AdminPortal = () => {
       alert('Property approved and added to marketplace! Request removed from pending list.');
     } else {
       // Existing property
+      const targetProperty = properties.find(p => p.id === propertyId);
+      
+      // If not in demo mode, activate on-chain
+      if (!demoMode && isConnected && targetProperty) {
+        try {
+          const onChainId = targetProperty.onChainId ?? propertyId;
+          await setPropertyActive(onChainId, true);
+        } catch (error) {
+          console.error('Error activating property on-chain:', error);
+          alert('Failed to activate property on-chain: ' + error.message);
+          return;
+        }
+      }
+
       const updatedProperties = properties.map(p =>
         p.id === propertyId ? { ...p, visible: true } : p
       );

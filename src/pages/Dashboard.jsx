@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { User, Wallet, FileText, Bell, TrendingUp, DollarSign, History, Upload, CheckCircle, XCircle, Clock, Building, Plus, Edit, Save, Camera, Mail, MapPin, Shield, Award, Calendar, Phone, Globe, Lock, Eye, EyeOff, Brain, Sparkles, Zap, BarChart3, PieChart, Activity } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { connectWallet, getEthBalance, formatAddress } from '../utils/wallet';
-import { getTokenBalance } from '../utils/contract';
+import { getTokenBalance, getUSDTBalance, getUserTokenBalance } from '../utils/contract';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getUserAnalytics, getPropertyAnalytics, getSentiment } from '../ml';
 
@@ -17,8 +17,10 @@ const Dashboard = () => {
     isLoggedIn,
     ethBalance,
     propyBalance,
+    usdtBalance,
     setEthBalance,
     setPropyBalance,
+    setUsdtBalance,
     user,
     updateUser,
     kycStatus,
@@ -29,7 +31,7 @@ const Dashboard = () => {
     notifications,
     markNotificationRead,
     addNotification,
-    isDemoMode,
+    demoMode,
     setInvestments,
   } = useStore();
   
@@ -113,9 +115,23 @@ const Dashboard = () => {
     if (isLoggedIn && user.email) {
       const loadInvestments = async () => {
         const { getUserInvestments, getUserInvestmentStats } = await import('../utils/backend');
-        const investments = getUserInvestments(user.email);
+        let investments = getUserInvestments(user.email);
         const stats = getUserInvestmentStats(user.email);
         
+        // If not in demo mode, sync with on-chain balances
+        if (!demoMode && isConnected && walletAddress) {
+          try {
+            const syncedInvestments = await Promise.all(investments.map(async (inv) => {
+              const onChainId = inv.onChainId ?? inv.propertyId;
+              const realBalance = await getUserTokenBalance(onChainId, walletAddress);
+              return { ...inv, tokens: parseFloat(realBalance) };
+            }));
+            investments = syncedInvestments;
+          } catch (error) {
+            console.error('Error syncing on-chain investments:', error);
+          }
+        }
+
         // Update store with investments
         const { setInvestments } = useStore.getState();
         setInvestments(investments);
@@ -137,27 +153,31 @@ const Dashboard = () => {
       
       return () => clearInterval(interval);
     }
-  }, [isLoggedIn, user.email, setEthBalance, setPropyBalance]);
+  }, [isLoggedIn, user.email, setEthBalance, setPropyBalance, demoMode, isConnected, walletAddress]);
 
   const loadWalletData = async () => {
     try {
-      if (isDemoMode) {
+      if (demoMode) {
         // Demo mode: Use demo balances
         setEthBalance('5.2500');
         setPropyBalance('12500.0000');
+        setUsdtBalance('10000.00');
       } else {
         // Production mode: Get real balances
         const ethBal = await getEthBalance(walletAddress);
         setEthBalance(ethBal);
         const propyBal = await getTokenBalance(walletAddress);
         setPropyBalance(propyBal);
+        const usdtBal = await getUSDTBalance(walletAddress);
+        setUsdtBalance(usdtBal);
       }
     } catch (error) {
       console.error('Error loading wallet data:', error);
       // Fallback to demo balance on error in demo mode
-      if (isDemoMode) {
+      if (demoMode) {
         setEthBalance('5.2500');
         setPropyBalance('12500.0000');
+        setUsdtBalance('10000.00');
       }
     }
   };
@@ -1406,19 +1426,44 @@ const Dashboard = () => {
                             <div className="p-3 bg-primary/20 rounded-2xl">
                               <Wallet className="text-primary" size={28} />
                             </div>
-                            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                            DEMO
+                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${demoMode ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                            {demoMode ? 'DEMO' : 'LIVE'}
                           </span>
                           </div>
                           <p className="text-sm font-semibold text-accent-600 mb-2">ETH Balance</p>
                           <p className="text-4xl font-bold text-accent-900 mb-2">
-                            {isDemoMode || !isConnected ? '12.5432' : parseFloat(ethBalance).toFixed(4)} ETH
+                            {demoMode || !isConnected ? '12.5432' : parseFloat(ethBalance).toFixed(4)} ETH
                           </p>
                           <p className="text-lg font-semibold text-green-600">
-                            ≈ ${isDemoMode || !isConnected ? '45,234' : (parseFloat(ethBalance) * 3600).toFixed(0).toLocaleString()} USD
+                            ≈ ${demoMode || !isConnected ? '45,234' : (parseFloat(ethBalance) * 3600).toFixed(0).toLocaleString()} USD
                           </p>
-                          <p className="text-xs text-accent-500 mt-2">Demo balance for testing</p>
+                          <p className="text-xs text-accent-500 mt-2">{demoMode ? 'Demo balance for testing' : 'Live balance'}</p>
                       </div>
+                      </motion.div>
+                      {/* USDT Balance Card */}
+                      <motion.div
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        className="bg-gradient-to-br from-emerald-50 via-emerald-500/10 to-white p-8 rounded-3xl shadow-xl border-2 border-emerald-200/50 relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-emerald-500/20 rounded-2xl">
+                              <DollarSign className="text-emerald-600" size={28} />
+                            </div>
+                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${demoMode ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                              {demoMode ? 'DEMO' : 'LIVE'}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-accent-600 mb-2">USDT Balance</p>
+                          <p className="text-4xl font-bold text-accent-900 mb-2">
+                            {demoMode || !isConnected ? '10,000.00' : parseFloat(usdtBalance).toLocaleString()} USDT
+                          </p>
+                          <p className="text-lg font-semibold text-emerald-600">
+                            ≈ ${demoMode || !isConnected ? '10,000' : parseFloat(usdtBalance).toLocaleString()} USD
+                          </p>
+                          <p className="text-xs text-accent-500 mt-2">{demoMode ? 'Demo balance for testing' : 'Live on-chain balance'}</p>
+                        </div>
                       </motion.div>
                       <motion.div
                         whileHover={{ scale: 1.02, y: -5 }}
@@ -1431,18 +1476,18 @@ const Dashboard = () => {
                             <div className="p-3 bg-blue-500/20 rounded-2xl">
                               <DollarSign className="text-blue-600" size={28} />
                             </div>
-                            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                            DEMO
+                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${demoMode ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                            {demoMode ? 'DEMO' : 'LIVE'}
                           </span>
                           </div>
                           <p className="text-sm font-semibold text-accent-600 mb-2">PROPY Balance</p>
                           <p className="text-4xl font-bold text-accent-900 mb-2">
-                            {isDemoMode || !isConnected ? '28,450.75' : parseFloat(propyBalance).toFixed(4)} PROPY
+                            {demoMode || !isConnected ? '28,450.75' : parseFloat(propyBalance).toFixed(4)} PROPY
                           </p>
                           <p className="text-lg font-semibold text-blue-600">
-                            ≈ ${isDemoMode || !isConnected ? '71,126' : (parseFloat(propyBalance) * 2.5).toFixed(0).toLocaleString()} USD
+                            ≈ ${demoMode || !isConnected ? '71,126' : (parseFloat(propyBalance) * 2.5).toFixed(0).toLocaleString()} USD
                           </p>
-                          <p className="text-xs text-accent-500 mt-2">Demo balance for testing</p>
+                          <p className="text-xs text-accent-500 mt-2">{demoMode ? 'Demo balance for testing' : 'Live balance'}</p>
                       </div>
                       </motion.div>
                     </div>

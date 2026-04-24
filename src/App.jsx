@@ -10,6 +10,7 @@ import ListProperty from './pages/ListProperty';
 import About from './pages/About';
 import AdminPortal from './pages/AdminPortal';
 import MLAnalytics from './pages/MLAnalytics';
+import PropertyDetail from './pages/PropertyDetail';
 import { useStore } from './store/useStore';
 import { setupMetaMaskListeners, getCurrentAccount, getChainId } from './utils/wallet';
 import './App.css';
@@ -84,6 +85,7 @@ function App() {
         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
         <Route path="/ml-analytics" element={<Layout><MLAnalytics /></Layout>} />
         <Route path="/list-property" element={<Layout><ListProperty /></Layout>} />
+        <Route path="/property/:id" element={<Layout><PropertyDetail /></Layout>} />
         <Route path="/about" element={<Layout><About /></Layout>} />
         <Route path="/admin-portal-98234-secret" element={<AdminPortal />} />
       </Routes>

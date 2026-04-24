@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { formatAddress, connectWallet, isMetaMaskInstalled, getChainId } from '../utils/wallet';
 import { Wallet, Menu, X, Building2, Home, Store, LayoutDashboard, Sparkles, Info, User, LogOut, Copy, Check, Shield, Mail, Brain } from 'lucide-react';
 import { useState } from 'react';
+import NetworkToggle from './NetworkToggle';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -264,6 +265,9 @@ const Layout = ({ children }) => {
                   </motion.button>
                 </>
               )}
+              
+              {/* Network Mode Toggle */}
+              <NetworkToggle />
               
               {/* Mobile Menu Button */}
               <button
