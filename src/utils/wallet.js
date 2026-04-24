@@ -4,7 +4,37 @@ import { ethers } from 'ethers';
  * Check if MetaMask is installed
  */
 export const isMetaMaskInstalled = () => {
-  return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  if (typeof window === 'undefined') return false;
+  
+  // Basic check for window.ethereum
+  const hasEthereum = typeof window.ethereum !== 'undefined';
+  
+  // Specific check for MetaMask (some other wallets also inject window.ethereum)
+  const isMetaMask = hasEthereum && (window.ethereum.isMetaMask || window.ethereum.providers?.some(p => p.isMetaMask));
+  
+  return hasEthereum; // We'll return true if any provider is found, but log info
+};
+
+/**
+ * Get detailed wallet status for debugging
+ */
+export const getWalletStatus = () => {
+  if (typeof window === 'undefined') return 'SSR';
+  if (typeof window.ethereum === 'undefined') return 'No provider found';
+  
+  const providers = [];
+  if (window.ethereum.isMetaMask) providers.push('MetaMask');
+  if (window.ethereum.isCoinbaseWallet) providers.push('Coinbase');
+  if (window.ethereum.isTrust) providers.push('Trust');
+  
+  if (window.ethereum.providers) {
+    window.ethereum.providers.forEach(p => {
+      if (p.isMetaMask) providers.push('MetaMask (Multi)');
+      if (p.isCoinbaseWallet) providers.push('Coinbase (Multi)');
+    });
+  }
+  
+  return providers.length > 0 ? `Detected: ${providers.join(', ')}` : 'Unknown Provider';
 };
 
 // Track pending connection requests to prevent duplicates
@@ -18,23 +48,24 @@ export const connectWallet = async () => {
     throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
   }
 
-  // Check if window.ethereum is available and responding
-  if (!window.ethereum || !window.ethereum.request) {
-    throw new Error('MetaMask is not responding. Please refresh the page and try again.');
-  }
-
   // Clear any stale pending connection
   if (pendingConnection) {
-    pendingConnection = null;
+    return pendingConnection;
   }
 
   // Create new connection promise with timeout
   const connectionPromise = (async () => {
+    // Find the correct provider if multiple are present
+    let provider = window.ethereum;
+    if (window.ethereum.providers) {
+      provider = window.ethereum.providers.find(p => p.isMetaMask) || window.ethereum;
+    }
+
     try {
-      // First, try to get existing accounts (quick check, no timeout needed)
+      // First, try to get existing accounts (quick check)
       let existingAccounts;
       try {
-        existingAccounts = await window.ethereum.request({ method: 'eth_accounts' });
+        existingAccounts = await provider.request({ method: 'eth_accounts' });
       } catch (err) {
         console.warn('Error checking existing accounts:', err);
         existingAccounts = [];
@@ -46,7 +77,7 @@ export const connectWallet = async () => {
 
       // If no existing accounts, request new connection with timeout
       const accounts = await Promise.race([
-        window.ethereum.request({ method: 'eth_requestAccounts' }),
+        provider.request({ method: 'eth_requestAccounts' }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Connection timeout. Please check MetaMask and try again.')), 30000)
         )
@@ -70,11 +101,7 @@ export const connectWallet = async () => {
         throw error;
       }
       
-      if (error.message) {
-        throw new Error(error.message);
-      }
-      
-      throw new Error('Failed to connect wallet. Please try again.');
+      throw error;
     } finally {
       // Always clear pending connection after completion
       pendingConnection = null;

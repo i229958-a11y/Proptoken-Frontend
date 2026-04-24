@@ -474,9 +474,12 @@ const Login = () => {
                       setError('');
                       try {
                         if (!isMetaMaskInstalled()) {
-                          setError('MetaMask is not installed. Please install MetaMask extension to continue.');
+                          setError('MetaMask was not detected. If you have it installed: 1. Refresh this page. 2. Ensure the extension is enabled. 3. If using Brave, check Wallet settings.');
                           setLoading(false);
-                          window.open('https://metamask.io/download/', '_blank');
+                          // Only open download if they definitely don't have any provider
+                          if (typeof window.ethereum === 'undefined') {
+                            window.open('https://metamask.io/download/', '_blank');
+                          }
                           return;
                         }
 
