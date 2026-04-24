@@ -10,7 +10,7 @@ import { getPendingPropertyRequests, approvePropertyListing, rejectPropertyListi
 import { getAllUsersAdmin, getAllTransactionsAdmin, getKYCApplications, approveKYC, rejectKYC, getProperties, approveProperty, rejectProperty } from '../utils/api';
 import Modal from '../components/Modal';
 import { getFraudSignals, getKYCScore, getMarketPredictions, getPropertyAnalytics } from '../ml';
-import { approveProperty as approvePropertyOnChain, setPropertyActive } from '../utils/contract';
+import { approveProperty as approvePropertyOnChain, setPropertyActive, getContractUSDTBalance, adminWithdraw } from '../utils/contract';
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -27,7 +27,10 @@ const AdminPortal = () => {
     setContractFrozen,
     demoMode,
     isConnected,
+    walletAddress,
   } = useStore();
+
+  const [contractUsdtBalance, setContractUsdtBalance] = useState('0.00');
 
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -57,6 +60,20 @@ const AdminPortal = () => {
       setProperties(sampleProperties);
     }
   }, [properties.length, setProperties]);
+
+  useEffect(() => {
+    if (adminLoggedIn && !demoMode && isConnected && walletAddress) {
+      const loadContractStats = async () => {
+        try {
+          const balance = await getContractUSDTBalance();
+          setContractUsdtBalance(balance);
+        } catch (error) {
+          console.error('Error loading contract balance:', error);
+        }
+      };
+      loadContractStats();
+    }
+  }, [adminLoggedIn, demoMode, isConnected, walletAddress]);
 
   const loadAdminData = async () => {
     if (!adminLoggedIn) return;
@@ -344,6 +361,37 @@ const AdminPortal = () => {
     });
     setProperties(updatedProperties);
     alert('Property unmarked as sponsored');
+  };
+
+  const handleWithdrawFees = async () => {
+    if (demoMode) {
+      alert('Withdrawal simulated in Demo Mode');
+      return;
+    }
+    
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const receipt = await adminWithdraw();
+      alert(`Successfully withdrawn fees from contract!\nHash: ${receipt.hash}`);
+      const balance = await getContractUSDTBalance();
+      setContractUsdtBalance(balance);
+    } catch (error) {
+      console.error('Withdrawal error:', error);
+      alert('Failed to withdraw fees: ' + error.message);
+    }
+  };
+
+  const handleToggleFreeze = async () => {
+    const newState = !contractFrozen;
+    
+    // Note: The smart contract doesn't have a global freeze, 
+    // so we only update the local platform state.
+    setContractFrozen(newState);
+    alert(`Platform contract interactions ${newState ? 'frozen' : 'unfrozen'} successfully`);
   };
 
   const handleBroadcastNotification = () => {
@@ -1131,25 +1179,33 @@ const AdminPortal = () => {
                 className="space-y-6"
               >
                 <h2 className="text-2xl font-bold text-accent-800 mb-4">Platform Settings</h2>
-                <div className="bg-accent-50 p-6 rounded-2xl">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-bold text-accent-800 mb-2">Contract Freeze</h3>
-                      <p className="text-sm text-accent-600">
-                        Freeze all smart contract interactions (buy tokens, invest, withdraw)
-                      </p>
+                <div className="bg-white p-6 rounded-2xl border border-accent-200">
+                  <h3 className="text-lg font-bold text-accent-800 mb-2">Contract Management</h3>
+                  <p className="text-accent-600 mb-4">Control global platform settings and fund management.</p>
+                  
+                  <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="flex-1 bg-accent-50 p-4 rounded-2xl border border-accent-100">
+                      <p className="text-xs text-accent-500 mb-1">Contract Balance (Fees)</p>
+                      <p className="text-2xl font-bold text-accent-900">{contractUsdtBalance} USDT</p>
                     </div>
                     <button
-                      onClick={() => setContractFrozen(!contractFrozen)}
-                      className={`px-6 py-3 rounded-2xl font-semibold transition-colors ${
-                        contractFrozen
-                          ? 'bg-red-500 hover:bg-red-600 text-white'
-                          : 'bg-green-500 hover:bg-green-600 text-white'
-                      }`}
+                      onClick={handleWithdrawFees}
+                      className="px-6 py-3 bg-gradient-to-r from-primary to-primary-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all"
                     >
-                      {contractFrozen ? 'Unfreeze Contract' : 'Freeze Contract'}
+                      Withdraw All Fees
                     </button>
                   </div>
+
+                  <button
+                    onClick={handleToggleFreeze}
+                    className={`w-full px-6 py-4 rounded-2xl font-bold text-white shadow-lg transition-all ${
+                      contractFrozen 
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
+                        : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                    }`}
+                  >
+                    {contractFrozen ? 'Unfreeze Contract' : 'Freeze Contract'}
+                  </button>
                 </div>
               </motion.div>
             )}

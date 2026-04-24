@@ -93,10 +93,10 @@ const Marketplace = () => {
 
     setIsBuying(true);
     try {
-      // ALWAYS use demo mode - NO MetaMask calls, NO contract interactions
-      // Fixed token price for demo
-      const tokenPrice = 0.25; // Fixed demo price
-      const ethAmount = (parseFloat(buyAmount) * parseFloat(tokenPrice)).toString();
+      if (isDemoMode) {
+        // Demo mode: Simulate transaction (NO MetaMask, NO blockchain)
+        const tokenPrice = 0.25; // Fixed demo price
+        const ethAmount = (parseFloat(buyAmount) * parseFloat(tokenPrice)).toString();
       
       // Demo mode: Simulate transaction (NO MetaMask, NO blockchain)
         await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
